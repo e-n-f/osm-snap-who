@@ -14,6 +14,7 @@ struct node {
 	unsigned id; // still just over 2^31
 	int lat;
 	int lon;
+	unsigned uid;
 };
 
 int nodecmp(const void *v1, const void *v2) {
@@ -87,6 +88,8 @@ static void XMLCALL start(void *data, const char *element, const char **attribut
 				n.lat = atof(attribute[i + 1]) * 1000000.0;
 			} else if (strcmp(attribute[i], "lon") == 0) {
 				n.lon = atof(attribute[i + 1]) * 1000000.0;
+			} else if (strcmp(attribute[i], "uid") == 0) {
+				n.uid = atoi(attribute[i + 1]);
 			}
 		}
 
@@ -190,17 +193,34 @@ static void XMLCALL start(void *data, const char *element, const char **attribut
 static void XMLCALL end(void *data, const char *el) {
 	if (strcmp(el, "way") == 0) {
 		int x;
-		for (x = 0; x < thenodecount; x += MAX - 1) {
-			if (x + 1 < thenodecount) {
-				int i;
-				for (i = x; i < x + MAX && i < thenodecount; i++) {
-					printf("%lf,%lf ", thenodes[i]->lat / 1000000.0,
-							   thenodes[i]->lon / 1000000.0);
-				}
+		for (x = 0; x < thenodecount - 1; x++) {
+			if (thenodes[x]->uid == thenodes[x + 1]->uid) {
+				printf("%lf,%lf ", thenodes[x]->lat / 1000000.0,
+						   thenodes[x]->lon / 1000000.0);
+				printf("%lf,%lf ", thenodes[x + 1]->lat / 1000000.0,
+						   thenodes[x + 1]->lon / 1000000.0);
+				printf("16:%d ", thenodes[x]->uid & 0xFFFF);
+				printf("// id=%u\n", theway);
+			} else {
+				printf("%lf,%lf ", thenodes[x]->lat / 1000000.0,
+						   thenodes[x]->lon / 1000000.0);
+				printf("%lf,%lf ", thenodes[x    ]->lat / 2000000.0 +
+						   thenodes[x + 1]->lat / 2000000.0,
+						   thenodes[x    ]->lon / 2000000.0 +
+						   thenodes[x + 1]->lon / 2000000.0);
+				printf("16:%d ", thenodes[x]->uid & 0xFFFF);
+				printf("// id=%u\n", theway);
 
-				printf("// id=%u", theway);
-				printf("%s\n", tags);
+				printf("%lf,%lf ", thenodes[x    ]->lat / 2000000.0 +
+						   thenodes[x + 1]->lat / 2000000.0,
+						   thenodes[x    ]->lon / 2000000.0 +
+						   thenodes[x + 1]->lon / 2000000.0);
+				printf("%lf,%lf ", thenodes[x + 1]->lat / 1000000.0,
+						   thenodes[x + 1]->lon / 1000000.0);
+				printf("16:%d ", thenodes[x + 1]->uid & 0xFFFF);
+				printf("// id=%u\n", theway);
 			}
+
 		}
 
 		theway = 0;
