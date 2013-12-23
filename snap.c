@@ -72,6 +72,7 @@ long long seq = 0;
 
 char tags[50000] = "";
 char theuser[50000] = "";
+int highway = 0;
 
 static void XMLCALL start(void *data, const char *element, const char **attribute) {
 	static struct node prevnode = { 0, 0, 0 };
@@ -141,6 +142,7 @@ static void XMLCALL start(void *data, const char *element, const char **attribut
 		thenodecount = 0;
 		strcpy(tags, "");
 		strcpy(theuser, "");
+		highway = 0;
 
 		for (i = 0; attribute[i] != NULL; i += 2) {
 			if (strcmp(attribute[i], "id") == 0) {
@@ -189,6 +191,10 @@ static void XMLCALL start(void *data, const char *element, const char **attribut
 				}
 			}
 
+			if (strcmp(key, "highway") == 0) {
+				highway = 1;
+			}
+
 			int n = strlen(tags);
 			if (n + strlen(key) + strlen(value) + 5 < sizeof(tags)) {
 				sprintf(tags + n, ";%s=%s", key, value);
@@ -202,44 +208,45 @@ static void XMLCALL start(void *data, const char *element, const char **attribut
 static void XMLCALL end(void *data, const char *el) {
 	if (strcmp(el, "way") == 0) {
 		int x;
-		for (x = 0; x < thenodecount - 1; x++) {
-			double lat1 = thenodes[x]->lat / 1000000.0;
-			double lon1 = thenodes[x]->lon / 1000000.0;
-			double lat2 = thenodes[x + 1]->lat / 1000000.0;
-			double lon2 = thenodes[x + 1]->lon / 1000000.0;
+		if (highway) {
+			for (x = 0; x < thenodecount - 1; x++) {
+				double lat1 = thenodes[x]->lat / 1000000.0;
+				double lon1 = thenodes[x]->lon / 1000000.0;
+				double lat2 = thenodes[x + 1]->lat / 1000000.0;
+				double lon2 = thenodes[x + 1]->lon / 1000000.0;
 
-#define FOOT .00000274
-			double latd = lat2 - lat1;
-			double lond = (lon2 - lon1) * cos((lat1 + lat2) / 2 * M_PI / 180);
-			double d = sqrt(latd * latd + lond * lond) / FOOT;
+	#define FOOT .00000274
+				double latd = lat2 - lat1;
+				double lond = (lon2 - lon1) * cos((lat1 + lat2) / 2 * M_PI / 180);
+				double d = sqrt(latd * latd + lond * lond) / FOOT;
 
-			if (thenodes[x]->uid == thenodes[x + 1]->uid) {
-				printf("%lf,%lf ", thenodes[x]->lat / 1000000.0,
-						   thenodes[x]->lon / 1000000.0);
-				printf("%lf,%lf ", thenodes[x + 1]->lat / 1000000.0,
-						   thenodes[x + 1]->lon / 1000000.0);
-				printf("16:%d ", thenodes[x]->uid & 0xFFFF);
-				printf("// id=%u feet=%.3f version=%u user=%s\n", theway, d, theversion, theuser);
-			} else {
-				printf("%lf,%lf ", thenodes[x]->lat / 1000000.0,
-						   thenodes[x]->lon / 1000000.0);
-				printf("%lf,%lf ", thenodes[x    ]->lat / 2000000.0 +
-						   thenodes[x + 1]->lat / 2000000.0,
-						   thenodes[x    ]->lon / 2000000.0 +
-						   thenodes[x + 1]->lon / 2000000.0);
-				printf("16:%d ", thenodes[x]->uid & 0xFFFF);
-				printf("// id=%u feet=%.3f version=%u user=%s\n", theway, d, theversion, theuser);
+				if (thenodes[x]->uid == thenodes[x + 1]->uid) {
+					printf("%lf,%lf ", thenodes[x]->lat / 1000000.0,
+							   thenodes[x]->lon / 1000000.0);
+					printf("%lf,%lf ", thenodes[x + 1]->lat / 1000000.0,
+							   thenodes[x + 1]->lon / 1000000.0);
+					printf("16:%d ", thenodes[x]->uid & 0xFFFF);
+					printf("// id=%u feet=%.3f version=%u user=%s\n", theway, d, theversion, theuser);
+				} else {
+					printf("%lf,%lf ", thenodes[x]->lat / 1000000.0,
+							   thenodes[x]->lon / 1000000.0);
+					printf("%lf,%lf ", thenodes[x    ]->lat / 2000000.0 +
+							   thenodes[x + 1]->lat / 2000000.0,
+							   thenodes[x    ]->lon / 2000000.0 +
+							   thenodes[x + 1]->lon / 2000000.0);
+					printf("16:%d ", thenodes[x]->uid & 0xFFFF);
+					printf("// id=%u feet=%.3f version=%u user=%s\n", theway, d, theversion, theuser);
 
-				printf("%lf,%lf ", thenodes[x    ]->lat / 2000000.0 +
-						   thenodes[x + 1]->lat / 2000000.0,
-						   thenodes[x    ]->lon / 2000000.0 +
-						   thenodes[x + 1]->lon / 2000000.0);
-				printf("%lf,%lf ", thenodes[x + 1]->lat / 1000000.0,
-						   thenodes[x + 1]->lon / 1000000.0);
-				printf("16:%d ", thenodes[x + 1]->uid & 0xFFFF);
-				printf("// id=%u feet=%.3f version=%u user=%s\n", theway, d, theversion, theuser);
+					printf("%lf,%lf ", thenodes[x    ]->lat / 2000000.0 +
+							   thenodes[x + 1]->lat / 2000000.0,
+							   thenodes[x    ]->lon / 2000000.0 +
+							   thenodes[x + 1]->lon / 2000000.0);
+					printf("%lf,%lf ", thenodes[x + 1]->lat / 1000000.0,
+							   thenodes[x + 1]->lon / 1000000.0);
+					printf("16:%d ", thenodes[x + 1]->uid & 0xFFFF);
+					printf("// id=%u feet=%.3f version=%u user=%s\n", theway, d, theversion, theuser);
+				}
 			}
-
 		}
 
 		theway = 0;
